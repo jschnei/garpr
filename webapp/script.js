@@ -1,8 +1,8 @@
 var app = angular.module('myApp', ['ngRoute', 'ui.bootstrap', 'angulartics', 'angulartics.google.analytics', 'facebook']);
 
-var dev = false;
+var dev = true;
 if (dev) {
-    var hostname = 'http://localhost:3000/';
+    var hostname = 'http://192.168.33.10:3000/';
 }
 else {
     var hostname = 'http://njssbm.com/api/'; //whensgarpr.gg:3000

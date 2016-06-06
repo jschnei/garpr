@@ -9,7 +9,7 @@ import hashlib
 from passlib.hash import sha256_crypt
 
 DEFAULT_RATING = TrueskillRating()
-DATABASE_NAME = 'garpr'
+DATABASE_NAME = 'admin'
 PLAYERS_COLLECTION_NAME = 'players'
 TOURNAMENTS_COLLECTION_NAME = 'tournaments'
 RANKINGS_COLLECTION_NAME = 'rankings'
