@@ -18,6 +18,8 @@ def create_user():
     if len(sys.argv) < 4:
         print "incorrect number of arguments!"
         print "usage: python create_user.py username password region1 [region2] [region3]...."
+        return
+        
     username = sys.argv[1]
     password = sys.argv[2]
     regions =  sys.argv[3:]
