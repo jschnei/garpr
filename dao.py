@@ -34,6 +34,15 @@ class InvalidNameException(Exception):
 class UpdateTournamentException(Exception):
     pass
 
+def gen_password(password):
+    # more bytes of randomness? i think 16 bytes is sufficient for a salt
+    salt = base64.b64encode(os.urandom(16))
+    hashed_password = base64.b64encode(hashlib.pbkdf2_hmac('sha256', password, salt, ITERATION_COUNT))
+
+    return salt, hashed_password
+
+
+
 #TODO create RegionSpecificDao object
 # yeah rn we pass in norcal for a buncha things we dont need to
 class Dao(object):
@@ -110,21 +119,6 @@ class Dao(object):
 
     def update_player(self, player):
         return self.players_col.update({'_id': player.id}, player.get_json_dict())
-
-    def insert_user(self, user):
-        '''    #TODO: validate regions all exist
-        salt = os.urandom(16) #more bytes of randomness? i think 16 bytes is sufficient for a salt
-        # does this need to be encoded before its passed into hashlib?
-        hashed_password = hashlib.pbkdf2_hmac('sha256', password, salt, ITERATION_COUNT)
-        the_user = User(None, regions, username, salt, hashed_password)
-        users_col = mongo_client[database_name][USERS_COLLECTION_NAME]
-        # let's validate that no user exists currently
-        if users_col.find_one({'username': username}):
-            print "already a user with that username in the db, exiting"
-            return None        '''
-        return self.users_col.insert(user.get_json_dict())
-
-
 
     # TODO bulk update
     def update_players(self, players):
@@ -357,6 +351,36 @@ class Dao(object):
 
 
     # session management
+    def insert_user(self, user):
+        # validate that no user with same username exists currently
+        if self.users_col.find_one({'username': user.username}):
+            print "already a user with that username in the db, exiting"
+            return
+
+        return self.users_col.insert(user.get_json_dict())
+
+    def create_user(self, username, password, regions):
+        valid_regions = [region.id for region in Dao.get_all_regions(self.mongo_client)]
+
+        for region in regions:
+            if region not in valid_regions:
+                print 'Invalid region name:', region
+
+        regions = [region for region in regions if region in valid_regions]
+        if len(regions) == 0:
+            print 'No valid region for new user'
+            return
+
+        salt, hashed_password = gen_password(password)
+        the_user = User(username, regions, username, salt, hashed_password)
+
+        return self.insert_user(the_user)
+
+    def change_passwd(self, username, password):
+        salt, hashed_password = gen_password(password)
+
+        # modifies the users password, or returns None if it couldnt find the user
+        return self.users_col.find_and_modify(query={'username': username}, update={"$set": {'hashed_password': hashed_password, 'salt': salt}})
 
     def get_user_by_id_or_none(self, id):
         result = self.users_col.find({"_id": id})
