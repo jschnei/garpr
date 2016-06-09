@@ -25,7 +25,13 @@ special_chars = re.compile("[^\w\s]*")
 class RegionNotFoundException(Exception):
     pass
 
+class InvalidRegionsException(Exception):
+    pass
+
 class DuplicateAliasException(Exception):
+    pass
+
+class DuplicateUsernameException(Exception):
     pass
 
 class InvalidNameException(Exception):
@@ -41,6 +47,9 @@ def gen_password(password):
 
     return salt, hashed_password
 
+def verify_password(password, salt, hashed_password):
+    the_hash = base64.b64encode(hashlib.pbkdf2_hmac('sha256', password, salt, ITERATION_COUNT))
+    return (the_hash and the_hash==hashed_password)
 
 
 #TODO create RegionSpecificDao object
@@ -354,8 +363,7 @@ class Dao(object):
     def insert_user(self, user):
         # validate that no user with same username exists currently
         if self.users_col.find_one({'username': user.username}):
-            print "already a user with that username in the db, exiting"
-            return
+            raise DuplicateUsernameException("already a user with that username in the db, exiting")
 
         return self.users_col.insert(user.get_json_dict())
 
@@ -368,8 +376,7 @@ class Dao(object):
 
         regions = [region for region in regions if region in valid_regions]
         if len(regions) == 0:
-            print 'No valid region for new user'
-            return
+            raise InvalidRegionsException("No valid region for new user")
 
         salt, hashed_password = gen_password(password)
         the_user = User(username, regions, username, salt, hashed_password)
@@ -416,8 +423,9 @@ class Dao(object):
         assert result.count() == 1, "WE HAVE DUPLICATE USERNAMES IN THE DB"
         user = User.from_json(result[0])
         assert user, "mongo has stopped being consistent, abort ship"
-        the_hash = base64.b64encode(hashlib.pbkdf2_hmac('sha256', password, user.salt, ITERATION_COUNT))
-        if the_hash and the_hash == user.hashed_password: # timing oracle on this... good luck
+
+         # timing oracle on this... good luck
+        if verify_password(password, user.salt, user.hashed_password):
             session_id = base64.b64encode(os.urandom(128))
             self.update_session_id_for_user(user.id, session_id)
             return session_id
