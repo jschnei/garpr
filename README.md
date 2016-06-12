@@ -1,5 +1,5 @@
-Environment Setup
-=================
+Environment Setup (USE VAGRANT INSTEAD!)
+========================================
 1. Install mongodb
 2. Start mongo: mongod &
 3. Configure a user and a password for mongo against the admin database. (instructions here: http://docs.mongodb.org/manual/tutorial/add-admin-user/)
